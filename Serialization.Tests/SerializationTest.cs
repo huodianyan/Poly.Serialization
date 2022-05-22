@@ -53,15 +53,11 @@ namespace Poly.Serialization.Tests
         }
     }
 
-    public class TestSerializable : IPolySerializable//, IEquatable<TestSerializable>
+    public class TestSerializable : IPolySerializable
     {
         public int IntValue;
         public string StringValue;
 
-        public bool Equals(TestSerializable other)
-        {
-            return IntValue == other.IntValue && StringValue == other.StringValue;
-        }
         public override bool Equals(object obj)
         {
             var other = obj as TestSerializable;

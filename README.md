@@ -1,13 +1,11 @@
-# Poly.Rest
-a lightweight Rest Server/Client service for Unity and any C# (or .Net) project.
-
-Function and interface refer to [grapevine](https://github.com/scottoffen/grapevine).
+# Poly.Serialization
+a lightweight Serializer and Deserializer for Unity and any C# (or .Net) project.
 
 ## Features
-- Zero dependencies (temporarily use Json.Net for serialization)
+- Zero dependencies
 - Minimal core (< 1000 lines)
 - Lightweight and fast
-- Register RestResource/RestRoute to handle rest request
+- Strongly Typed and C# Code as schema, no needs to other IDL like .proto, .fbs...
 - Adapted to all C# game engine
 
 ## Installation
@@ -16,62 +14,63 @@ Function and interface refer to [grapevine](https://github.com/scottoffen/grapev
 
 ```csharp
 
-[Serializable]
-public class GetKVRequest
+public class TestSerializable : IPolySerializable
 {
-    public string Key;
-}
-[Serializable]
-public class GetKVResponse
-{
-    public string Value;
-}
-[RestResource(BasePath = "/Test")]
-public class TestResource
-{
-    [RestRoute(ERestMethod.POST, "/GetKV")]
-    public async Task GetKV(HttpListenerContext context)
+    public int IntValue;
+    public string StringValue;
+
+    public override bool Equals(object obj)
     {
-        var token = context.Request.Headers.Get("X-Authorization");
-        var restResp = new RestResponse<GetKVResponse>();
-        try
-        {
-            var req = RestUtil.Deserialize<GetKVRequest>(context.Request.InputStream);
-            var key = req.Key;
-            if (key == null)
-            {
-                restResp.Code = RestUtil.Code_NoValue;
-                restResp.Status = RestUtil.Error_NoValue;
-            }
-            else
-            {
-                var resp = new GetKVResponse();
-                resp.Value = $"{key}_value";
-                restResp.Data = resp;
-                restResp.Code = 200;
-            }
-        }
-        catch (Exception ex)
-        {
-            restResp.Code = RestUtil.Code_OperationFailed;
-            restResp.Status = ex.Message;
-        }
-        var json = RestUtil.Serialize(restResp);
-        await context.Response.SendJsonResponseAsync(json);
+        var other = obj as TestSerializable;
+        if (other == null) return false;
+        return IntValue == other.IntValue && StringValue == other.StringValue;
+    }
+    public override int GetHashCode()
+    {
+        return unchecked(IntValue + StringValue.GetHashCode());
+    }
+    public void Deserialize(ref PolyReader reader)
+    {
+        IntValue = reader.ReadPackedInt();
+        StringValue = reader.ReadString();
+    }
+    public void Serialize(ref PolyWriter writer)
+    {
+        writer.WritePackedInt(IntValue);
+        writer.WriteString(StringValue);
     }
 }
+[PolyFormattable]
+public class TestFormattable
+{
+    [PolyIndex(1)]
+    public string Value1 { get; set; }
+    [PolyIndex(0)]
+    public int Value0 { get; set; }
+    //[PolyIndex(2)]
+    //public IList<int> Value2 { get; set; }
+    [PolyIndex(2)]
+    public TestSerializable Value3 { get; set; }
+}
 
-var routingManager = new RestRoutingManager();
-routingManager.RegisterResource("Poly.Rest.Tests");
-var restServer = new RestServer(1234, null, routingManager);
-restServer.Start();
+...
 
-restClient = new RestClient("http://localhost:1234/", 3f);
-var restResponse = await restClient.CallRestAPIAsync<GetKVRequest, GetKVResponse>("Test/GetKV", request);
-restClient.Dispose();
+var context = new PolySerializationContext();
+var origin = new TestFormattable
+{
+    Value0 = 100,
+    Value1 = "huo",
+    //Value2 = new List<int>() { 1, 2, 3 },
+    Value3 = new TestSerializable { IntValue = 111, StringValue = "dian" }
+};
+var data = new byte[64];
+var writer = new PolyWriter(data, 0, 0, context);
+writer.WriteObject(origin);
 
-restServer.Stop();
-routingManager.Dispose();
+var segment = writer.DataSegment;
+
+var reader = new PolyReader(segment);
+var result = reader.ReadObject<TestFormattable>();
 
 ```
 
@@ -83,8 +82,10 @@ The software is released under the terms of the [MIT license](./LICENSE.md).
 ## References
 
 ### Documents
+- [BitConverter Class](https://docs.microsoft.com/zh-cn/dotnet/api/system.bitconverter?view=net-6.0)
 
 ### Projects
-- [scottoffen/grapevine](https://github.com/scottoffen/grapevine)
+- [neuecc/ZeroFormatter](https://github.com/neuecc/ZeroFormatter)
+- [grofit/LazyData](https://github.com/grofit/LazyData)
 
 ### Benchmarks
