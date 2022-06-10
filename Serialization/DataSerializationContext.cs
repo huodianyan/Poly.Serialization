@@ -5,12 +5,12 @@ using System.Text;
 
 namespace Poly.Serialization
 {
-    public delegate void PolyWriteDelegate(ref PolyWriter writer, object value, Type type);
-    public delegate object PolyReadDelegate(ref PolyReader reader, Type type);
+    public delegate void PolyWriteDelegate(ref DataWriter writer, object value, Type type);
+    public delegate object PolyReadDelegate(ref DataReader reader, Type type);
     public interface IPolySerialzationHandler
     {
-        void Write(ref PolyWriter writer, object value, Type type);
-        object Read(ref PolyReader reader, Type type);
+        void Write(ref DataWriter writer, object value, Type type);
+        object Read(ref DataReader reader, Type type);
         bool IsSupportType(Type type);
     }
     public class PolySerialzationFuncHandler : IPolySerialzationHandler
@@ -26,11 +26,11 @@ namespace Poly.Serialization
             this.writeDelegate = writeDelegate;
             this.readDelegate = readDelegate;
         }
-        public object Read(ref PolyReader reader, Type type)
+        public object Read(ref DataReader reader, Type type)
         {
             return readDelegate(ref reader, type);
         }
-        public void Write(ref PolyWriter writer, object value, Type type)
+        public void Write(ref DataWriter writer, object value, Type type)
         {
             writeDelegate(ref writer, value, type);
         }
@@ -41,16 +41,16 @@ namespace Poly.Serialization
     }
 
     [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct, AllowMultiple = false, Inherited = true)]
-    public class PolyFormattableAttribute : Attribute
+    public class DataFormattableAttribute : Attribute
     {
 
     }
 
     [AttributeUsage(AttributeTargets.Property, AllowMultiple = false, Inherited = true)]
-    public class PolyIndexAttribute : Attribute
+    public class DataIndexAttribute : Attribute
     {
         internal int index;
-        public PolyIndexAttribute(int index)
+        public DataIndexAttribute(int index)
         {
             this.index = index;
         }
@@ -105,16 +105,16 @@ namespace Poly.Serialization
         }
     }
 
-    public class PolySerializationContext : IPolySerializationContext
+    public class DataSerializationContext : IPolySerializationContext
     {
-        private static PolySerializationContext defaultContext = null;
-        public static PolySerializationContext DefaultContext
+        private static DataSerializationContext defaultContext = null;
+        public static DataSerializationContext DefaultContext
         {
             get
             {
                 if (defaultContext == null)
                 {
-                    defaultContext = new PolySerializationContext();
+                    defaultContext = new DataSerializationContext();
                 }
                 return defaultContext;
             }
@@ -125,7 +125,7 @@ namespace Poly.Serialization
         protected ushort maxTypeId = 10;
         protected Dictionary<Type, Func<object>> typeCreatorDict = new Dictionary<Type, Func<object>>();
 
-        public PolySerializationContext()
+        public DataSerializationContext()
         {
         }
 
@@ -194,13 +194,13 @@ namespace Poly.Serialization
         private Dictionary<Type, PolyFormattableTypeInfo> serializableTypeInfoDict = new Dictionary<Type, PolyFormattableTypeInfo>();
         public PolyFormattableTypeInfo RegisterFormattableType(Type type)
         {
-            var attr = type.GetCustomAttribute<PolyFormattableAttribute>();
+            var attr = type.GetCustomAttribute<DataFormattableAttribute>();
             if (attr == null) return null;
             var info = new PolyFormattableTypeInfo(type);
             var propertyInfos = type.GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
             foreach (var propertyInfo in propertyInfos)
             {
-                var indexAttr = propertyInfo.GetCustomAttribute<PolyIndexAttribute>();
+                var indexAttr = propertyInfo.GetCustomAttribute<DataIndexAttribute>();
                 if (indexAttr != null)
                 {
                     info.AddPropertyInfo(propertyInfo, indexAttr.index);

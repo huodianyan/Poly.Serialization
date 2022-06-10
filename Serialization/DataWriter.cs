@@ -6,22 +6,24 @@ using System.Text;
 
 namespace Poly.Serialization
 {
-    public struct PolyWriter
+    public struct DataWriter
     {
         private byte[] data;
         private readonly int offset;
         private int position;
         private readonly IPolySerializationContext context;
 
+        public byte[] Data => data;
+        public int Position => position;
         public int Count => position - offset;
         public ArraySegment<byte> DataSegment => new ArraySegment<byte>(data, offset, Count);
 
-        public PolyWriter(byte[] data, int offset, int position, IPolySerializationContext context = null)
+        public DataWriter(byte[] data, int offset, int position, IPolySerializationContext context = null)
         {
             this.data = data;
             this.offset = offset;
             this.position = position;
-            this.context = context ?? PolySerializationContext.DefaultContext;
+            this.context = context ?? DataSerializationContext.DefaultContext;
         }
         public override string ToString()
         {
@@ -272,6 +274,8 @@ namespace Poly.Serialization
 
         #region bytes
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void WriteBytes(ArraySegment<byte> segment) => WriteBytes(segment.Array, segment.Offset, segment.Count);
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void WriteBytes(byte[] data, int offset, int count)
         {
             ResizeIfNeed(position + count);
@@ -360,14 +364,14 @@ namespace Poly.Serialization
 
         #region IPolySerialzable
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Write<T>(T obj) where T : IPolySerializable
+        public void Write<T>(T obj) where T : IDataSerializable
         {
             obj.Serialize(ref this);
         }
         #endregion
 
         #region PolyFormattable
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        //[MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void WriteFormattable(object obj)
         {
             var type = obj.GetType();
@@ -429,7 +433,7 @@ namespace Poly.Serialization
             //Dictionary<K,V>
             else if (value is IDictionary dict && typeArguments.Length > 0)
                 WriteDictionary(dict);
-            else if (value is IPolySerializable serializable)
+            else if (value is IDataSerializable serializable)
                 serializable.Serialize(ref this);
             else if(type.IsPolyFormattable())
                 WriteFormattable(value);

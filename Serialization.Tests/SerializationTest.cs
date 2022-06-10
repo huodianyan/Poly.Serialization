@@ -7,12 +7,12 @@ namespace Poly.Serialization.Tests
     [TestClass]
     public partial class SerializationTest
     {
-        private static PolySerializationContext context;
+        private static DataSerializationContext context;
 
         [ClassInitialize]
         public static void ClassInitialize(TestContext testContext)
         {
-            context = new PolySerializationContext();
+            context = new DataSerializationContext();
         }
         [ClassCleanup]
         public static void ClassCleanup()
@@ -38,12 +38,12 @@ namespace Poly.Serialization.Tests
                 Value3 = new TestSerializable { IntValue = 111, StringValue = "dian" }
             };
             var data = new byte[64];
-            var writer = new PolyWriter(data, 0, 0, context);
+            var writer = new DataWriter(data, 0, 0, context);
             writer.WriteObject(origin);
 
             var segment = writer.DataSegment;
 
-            var reader = new PolyReader(segment);
+            var reader = new DataReader(segment);
             var result = reader.ReadObject<TestFormattable>();
 
             Assert.AreEqual(origin.Value0, result.Value0);
@@ -53,7 +53,7 @@ namespace Poly.Serialization.Tests
         }
     }
 
-    public class TestSerializable : IPolySerializable
+    public class TestSerializable : IDataSerializable
     {
         public int IntValue;
         public string StringValue;
@@ -68,27 +68,27 @@ namespace Poly.Serialization.Tests
         {
             return unchecked(IntValue + StringValue.GetHashCode());
         }
-        public void Deserialize(ref PolyReader reader)
+        public void Deserialize(ref DataReader reader)
         {
             IntValue = reader.ReadPackedInt();
             StringValue = reader.ReadString();
         }
-        public void Serialize(ref PolyWriter writer)
+        public void Serialize(ref DataWriter writer)
         {
             writer.WritePackedInt(IntValue);
             writer.WriteString(StringValue);
         }
     }
-    [PolyFormattable]
+    [DataFormattable]
     public class TestFormattable
     {
-        [PolyIndex(1)]
+        [DataIndex(1)]
         public string Value1 { get; set; }
-        [PolyIndex(0)]
+        [DataIndex(0)]
         public int Value0 { get; set; }
         //[PolyIndex(2)]
         //public IList<int> Value2 { get; set; }
-        [PolyIndex(2)]
+        [DataIndex(2)]
         public TestSerializable Value3 { get; set; }
     }
 }

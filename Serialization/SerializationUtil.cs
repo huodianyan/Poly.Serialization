@@ -34,7 +34,7 @@ namespace Poly.Serialization
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool IsPolyFormattable(this Type type) => type.GetCustomAttribute<PolyFormattableAttribute>() != null;
+        public static bool IsPolyFormattable(this Type type) => type.GetCustomAttribute<DataFormattableAttribute>() != null;
     }
 
     //public class UnityJsonSerializerSettings : JsonSerializerSettings

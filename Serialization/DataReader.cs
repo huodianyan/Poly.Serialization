@@ -6,27 +6,28 @@ using System.Text;
 
 namespace Poly.Serialization
 {
-    public struct PolyReader
+    public struct DataReader
     {
-        private byte[] data;
-        private int offset;
+        private readonly byte[] data;
+        private readonly int offset;
+        private readonly int count;
         private int position;
-        private int count;
-        private IPolySerializationContext context;
+        private readonly IPolySerializationContext context;
 
         public ArraySegment<byte> DataSegment => new ArraySegment<byte>(data, offset, count);
         public ArraySegment<byte> AvailableSegment => new ArraySegment<byte>(data, position, AvailableCount);
         public int AvailableCount => offset + count - position;
+        public int Position => position;
 
-        public PolyReader(byte[] data, int offset, int count, int position = -1, IPolySerializationContext context = null)
+        public DataReader(byte[] data, int offset, int count, int position = -1, IPolySerializationContext context = null)
         {
             this.data = data;
             this.offset = offset;
             this.count = count;
             this.position = position == -1 ? offset : position;
-            this.context = context ?? PolySerializationContext.DefaultContext;
+            this.context = context ?? DataSerializationContext.DefaultContext;
         }
-        public PolyReader(ArraySegment<byte> segment, int position = -1, IPolySerializationContext context = null)
+        public DataReader(ArraySegment<byte> segment, int position = -1, IPolySerializationContext context = null)
             : this(segment.Array, segment.Offset, segment.Count, position, context)
         {
         }
@@ -198,9 +199,9 @@ namespace Poly.Serialization
 
         #region bytes
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void ReadBytes(byte[] destination, int offset, int count)
+        public void ReadBytes(byte[] dest, int offset, int count)
         {
-            Buffer.BlockCopy(data, position, destination, offset, count);
+            Buffer.BlockCopy(data, position, dest, offset, count);
             position += count;
         }
         #endregion
@@ -222,15 +223,13 @@ namespace Poly.Serialization
                 result[i] = ReadObject<TValue>();
             return result;
         }
-        //public static byte[] ReadByteArray(this ref PolyReader reader)
+        //public byte[] ReadByteArray()
         //{
-        //    int count = reader.ReadUShort();
+        //    int count = ReadUShort();
         //    var array = new byte[count];
-        //    //logger.LogTrace($"NetDataWriter.ReadByteArray: {array.Length},0,{count}, {reader.DataSize}, {reader.AvailableBytes}");
-        //    reader.ReadBytes(array, 0, count);
+        //    ReadBytes(array, 0, count);
         //    return array;
         //}
-
         #endregion
 
         #region List
@@ -285,14 +284,14 @@ namespace Poly.Serialization
 
         #region IPolySerializable
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public T Read<T>() where T : IPolySerializable, new()
+        public T Read<T>() where T : IDataSerializable, new()
         {
             var obj = new T();
             obj.Deserialize(ref this);
             return obj;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Read<T>(T obj) where T : IPolySerializable => obj.Deserialize(ref this);
+        public void Read<T>(T obj) where T : IDataSerializable => obj.Deserialize(ref this);
         #endregion
 
         #region PolyFormattable
@@ -366,9 +365,9 @@ namespace Poly.Serialization
                 var valueType = type.GenericTypeArguments[1];
                 return ReadDictionary(keyType, valueType);
             }
-            if (typeof(IPolySerializable).IsAssignableFrom(type))
+            if (typeof(IDataSerializable).IsAssignableFrom(type))
             {
-                var obj = CreateInstance<IPolySerializable>(type);
+                var obj = CreateInstance<IDataSerializable>(type);
                 obj?.Deserialize(ref this);
                 return obj;
             }

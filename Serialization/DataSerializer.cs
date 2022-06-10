@@ -1,6 +1,6 @@
 ﻿namespace Poly.Serialization
 {
-    public class PolySerializer
+    public class DataSerializer
     {
         public byte[] Serialize<T>(T data)
         {
